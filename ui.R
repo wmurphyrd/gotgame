@@ -13,19 +13,48 @@ shinyUI(fluidPage(
   titlePanel("Ground Game Leaderboard/Progress"),
 
   # Sidebar with a slider input for number of bins
-  sidebarLayout(
-    sidebarPanel(
-      fileInput("uploads", "Upload Ground Game Reports",
-                multiple = TRUE, accept = "text/csv"),
-      p("Upload the Contact History, Uncontacteds, and Question Response reports for each active campaign")
+  fluidRow(
+    column(
+      6,
+      wellPanel(
+        h3("Inputs"),
+        fileInput("uploads", "Upload Ground Game Reports",
+                  multiple = TRUE, accept = "text/csv"),
+        helpText("Upload the Contact History, Uncontacteds, and Question Response reports for each active campaign"),
+        dateInput("day", "Choose Leaderboard Day"),
+        actionButton("gs_connect", "Connect to Texter Tracker", icon("plug")),
+        helpText("Optional: login to Google Sheets to access organizer info.")
+      )
     ),
 
     # Show a plot of the generated distribution
-    mainPanel(
-      tableOutput("fileStatus"),
-      dateInput("day", "Choose Leaderboard Day"),
-      downloadButton("ldb_download", label = "Download Leaderboard"),
-      tableOutput("leaderboard")
+    column(
+      6,
+      wellPanel(
+        h3("Report Upload Status"),
+        tableOutput("fileStatus"),
+        downloadButton("merged_download", label = "Download Merged Reports"),
+        helpText("Downloads all uploaded report data as a single spreadsheet.")
+      )
+    )
+  ),
+  fluidRow(
+    column(
+      6,
+      wellPanel(
+        h3("Texter Leaderboard"),
+        downloadButton("ldb_download", label = "Download Leaderboard"),
+        tableOutput("leaderboard")
+      )
+    ),
+    column(
+      6,
+      wellPanel(
+        h3("Organizer Leaderboard"),
+        downloadButton("ldb_org_download",
+                       label = "Download Organizers Leaderboard"),
+        tableOutput("leaderboard_organizers")
+      )
     )
   )
 ))
