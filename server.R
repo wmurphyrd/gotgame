@@ -80,8 +80,11 @@ shinyServer(function(input, output, session) {
     newFiles()
     all_files %>%
       filter(type %in% c("contacts", "questions")) %>%
-      select(type, data) %>%
-      unnest(data)
+      select(type, data) %>% {
+        if (nrow(.)) {
+          unnest(., data)
+        }
+      }
   })
   target_day_data <- reactive({
     req(merged_data()) %>%
