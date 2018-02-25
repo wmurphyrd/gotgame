@@ -17,7 +17,7 @@ shinyUI(fluidPage(
     column(
       6,
       wellPanel(
-        h3("Inputs"),
+        h3("Report Files"),
         uiOutput('loginButton'),
         helpText("Optional: login to Google Sheets to access organizer info.",
                  "Do this first if you're going to use it,",
@@ -27,7 +27,13 @@ shinyUI(fluidPage(
         helpText("Upload the Contact History, Uncontacteds, and Question",
                  "Response reports for each active campaign"),
         dateInput("day", "Choose Leaderboard Day"),
-        textOutput("date_debug")
+        textOutput("date_debug"),
+        conditionalPanel(
+          "output.campaign_status",
+          downloadButton("merged_download", label = "Download Merged Reports"),
+          helpText("Downloads all uploaded report data as zip archive with a",
+                   "single merged spreadsheet for each report type.")
+        )
       )
     ),
     column(
@@ -47,14 +53,13 @@ shinyUI(fluidPage(
     column(
       6,
       wellPanel(
-        h3("Report Upload Status"),
+        h3("Campaign Progress"),
         conditionalPanel(
-          "output.fileStatus",
-          downloadButton("merged_download", label = "Download Merged Reports"),
-          helpText("Downloads all uploaded report data as zip archive with a",
-                   "single merged spreadsheet for each report type.")
+          "output.campaign_status",
+          div("TODO: export campaign status to texter tracker",
+              class = "btn btn-default", disabled = TRUE)
         ),
-        tableOutput("fileStatus")
+        tableOutput("campaign_status")
       )
     ),
     column(

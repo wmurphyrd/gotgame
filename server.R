@@ -13,6 +13,7 @@ library(cellranger)
 
 gs_tracker_id <- "1rJY91THJIVZ0j6WM0vL0rZsTyCK8hvMg7w8JK2jveK4"
 master_list_name <- "MASTER 2018 Texters"
+nrow_if_present <- function(x) { ifelse(is.null(x), NA, nrow(x)) }
 
 shinyServer(function(input, output, session) {
   all_files <- tibble(name = character(0))
@@ -59,6 +60,12 @@ shinyServer(function(input, output, session) {
         type = factor(type, levels = c("contacts", "uncontacteds", "questions"))
       ) %>%
       spread(type, data, drop = FALSE) %>%
+      mutate(contacted_count = sapply(contacts, nrow_if_present),
+             uncontacted_count = sapply(uncontacteds, nrow_if_present),
+             people = contacted_count + uncontacted_count,
+             ptg = contacted_count / people
+      ) %>%
+      select(-contacted_count, -uncontacted_count) %>%
       mutate(contacts = !sapply(contacts, is.null),
              uncontacteds = !sapply(uncontacteds, is.null),
              questions = !sapply(questions, is.null)) %>%
@@ -66,7 +73,7 @@ shinyServer(function(input, output, session) {
                 funs(factor(., labels = c("Not Uploaded", "OK"),
                             levels = c(FALSE, TRUE))))
   })
-  output$fileStatus <- renderTable({
+  output$campaign_status <- renderTable({
     newFiles()
   })
   merged_data <- reactive({
