@@ -51,7 +51,8 @@ shinyUI(fluidPage(
         conditionalPanel(
           "output.fileStatus",
           downloadButton("merged_download", label = "Download Merged Reports"),
-          helpText("Downloads all uploaded report data as a single spreadsheet.")
+          helpText("Downloads all uploaded report data as zip archive with a",
+                   "single merged spreadsheet for each report type.")
         ),
         tableOutput("fileStatus")
       )

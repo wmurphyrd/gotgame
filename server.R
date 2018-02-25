@@ -148,10 +148,24 @@ shinyServer(function(input, output, session) {
   )
   output$merged_download <- downloadHandler(
     filename = function() {
-      paste("merged-reports-", as.Date(input$day), ".csv", sep="")
+      paste("merged-reports-", as.Date(input$day), ".zip", sep="")
     },
     content = function (file) {
-      write_csv(merged_data(), file, na = "")
+      tmpdir <- tempdir()
+      reports <- character(0)
+      all_files %>%
+        group_by(type) %>%
+        summarize(data = list(bind_rows(data))) %>% {
+          mapply(function (type, data) {
+            loc <- file.path(
+              tmpdir,
+              paste0("merged-", type, "-", as.Date(input$day), ".csv")
+            )
+            reports <<- c(reports, loc)
+            write_csv(data, loc, na = "")
+          }, type = .$type, data = .$data)
+        }
+      zip(file, reports, flags = "-mj9X")
     }
   )
   tracker_sheet <- reactive({
