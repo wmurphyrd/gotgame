@@ -45,12 +45,16 @@ shinyServer(function(input, output, session) {
           }),
           campaign = sapply(data, function (d) { d$`Campaign Name`[1] })
         ) %>%
-        bind_rows(all_files) ->>
+        bind_rows(all_files) %>%
+        # ignore duplicates that made it past the filename check
+        group_by(campaign, type) %>%
+        filter(row_number(campaign) == 1) %>%
+        ungroup() ->>
         all_files
     }
     all_files %>%
       select(campaign, type, data) %>%
-      # ensure all three types make it into the set are available
+      # ensure all three types make it into the set
       mutate(
         type = factor(type, levels = c("contacts", "uncontacteds", "questions"))
       ) %>%
