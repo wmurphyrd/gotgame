@@ -7,15 +7,14 @@
 
 library(shiny)
 library(magrittr)
-library(dplyr)
-library(tidyr)
+library(tidyverse)
 library(googlesheets)
 library(cellranger)
 
 gs_tracker_id <- "1rJY91THJIVZ0j6WM0vL0rZsTyCK8hvMg7w8JK2jveK4"
 master_list_name <- "MASTER 2018 Texters"
 
-shinyServer(function(input, output) {
+shinyServer(function(input, output, session) {
   all_files <- tibble(name = character(0))
   gs_auth_token <- NULL
   newFiles <- reactive({
@@ -113,14 +112,6 @@ shinyServer(function(input, output) {
       write_csv(ldb_react(), file, na = "")
     }
   )
-  tracker_sheet <- reactive({
-    if (input$gs_connect < 1) { return(NULL) }
-    if (is.null(gs_auth_token)) {
-      gs_auth_token <<- gs_auth(new_user = TRUE, cache = FALSE)
-      # gs_auth_token <<- gs_auth()
-    }
-    gs_key(gs_tracker_id)
-  })
   organizer_lookup <- reactive({
     if (isTruthy(tracker_sheet())) {
       gs_read(tracker_sheet(), master_list_name, cell_cols(1:4)) %>%
@@ -163,5 +154,47 @@ shinyServer(function(input, output) {
       write_csv(merged_data(), file, na = "")
     }
   )
-
+  tracker_sheet <- reactive({
+    if (is.null(isolate(access_token()))) { return() }
+    gs_key(gs_tracker_id)
+  })
+  output$loginButton <- renderUI({
+    if (!is.null(isolate(access_token()))) {
+      tags$a(
+        icon("plug"),
+        "Texter Tracker is Connected",
+        disabled = TRUE,
+        class = "btn btn-default"
+      )
+    } else {
+      tags$a(
+        icon("plug"),
+        "Connect to Texter Tracker",
+        href = gs_webapp_auth_url(),
+        class = "btn btn-default"
+      )
+    }
+  })
+  ## Get auth code from return URL
+  access_token <- reactive({
+    ## gets all the parameters in the URL. The auth code should be one of them.
+    pars <- parseQueryString(session$clientData$url_search)
+    
+    if (length(pars$code) > 0) {
+      ## extract the authorization code
+      gs_webapp_get_token(auth_code = pars$code)
+    } else {
+      NULL
+    }
+  })
+  output$date_debug <- renderText({
+    paste("DEBUG: Selected date:", as.character(input$day),
+          "Report dates:",
+          merged_data() %>%
+            mutate(date = substring(date, 1, 10)) %>%
+            use_series("date") %>%
+            unique() %>%
+            paste(collapse = ", ")
+    )
+  })
 })

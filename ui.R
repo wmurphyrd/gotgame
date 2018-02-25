@@ -18,23 +18,28 @@ shinyUI(fluidPage(
       6,
       wellPanel(
         h3("Inputs"),
+        uiOutput('loginButton'),
+        helpText("Optional: login to Google Sheets to access organizer info.",
+                 "Do this first if you're going to use it,",
+                 "as it resets the uploads"),
         fileInput("uploads", "Upload Ground Game Reports",
                   multiple = TRUE, accept = "text/csv"),
-        helpText("Upload the Contact History, Uncontacteds, and Question Response reports for each active campaign"),
+        helpText("Upload the Contact History, Uncontacteds, and Question",
+                 "Response reports for each active campaign"),
         dateInput("day", "Choose Leaderboard Day"),
-        actionButton("gs_connect", "Connect to Texter Tracker", icon("plug")),
-        helpText("Optional: login to Google Sheets to access organizer info.")
+        textOutput("date_debug")
       )
     ),
-
-    # Show a plot of the generated distribution
     column(
       6,
       wellPanel(
-        h3("Report Upload Status"),
-        tableOutput("fileStatus"),
-        downloadButton("merged_download", label = "Download Merged Reports"),
-        helpText("Downloads all uploaded report data as a single spreadsheet.")
+        h3("Organizer Leaderboard"),
+        conditionalPanel(
+          "output.leaderboard_organizers",
+          downloadButton("ldb_org_download",
+                         label = "Download Organizers Leaderboard")
+        ),
+        tableOutput("leaderboard_organizers")
       )
     )
   ),
@@ -42,18 +47,24 @@ shinyUI(fluidPage(
     column(
       6,
       wellPanel(
-        h3("Texter Leaderboard"),
-        downloadButton("ldb_download", label = "Download Leaderboard"),
-        tableOutput("leaderboard")
+        h3("Report Upload Status"),
+        conditionalPanel(
+          "output.fileStatus",
+          downloadButton("merged_download", label = "Download Merged Reports"),
+          helpText("Downloads all uploaded report data as a single spreadsheet.")
+        ),
+        tableOutput("fileStatus")
       )
     ),
     column(
       6,
       wellPanel(
-        h3("Organizer Leaderboard"),
-        downloadButton("ldb_org_download",
-                       label = "Download Organizers Leaderboard"),
-        tableOutput("leaderboard_organizers")
+        h3("Texter Leaderboard"),
+        conditionalPanel(
+          "output.leaderboard",
+          downloadButton("ldb_download", label = "Download Leaderboard")
+        ),
+        tableOutput("leaderboard")
       )
     )
   )
