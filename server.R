@@ -88,7 +88,13 @@ shinyServer(function(input, output, session) {
   })
   target_day_data <- reactive({
     req(merged_data()) %>%
-      mutate(date = substring(date, 1, 10)) %>%
+      mutate(
+        date = sapply(strsplit(date, " ", fixed = FALSE), first),
+        # fix dates ruined by opening reports in excel and re-saving
+        date = ifelse(grepl("[[:digit:]]{4}[[:space:]]*$", date),
+                      format(as.Date(.$date, "%m/%d/%Y"), "%Y-%m-%d"),
+                      date)
+      ) %>%
       filter(date == as.character(input$day))
   })
   ldb_react <- reactive({
@@ -123,7 +129,10 @@ shinyServer(function(input, output, session) {
       paste("leaderboard-", as.Date(input$day), ".csv", sep="")
     },
     content = function (file) {
-      write_csv(ldb_react(), file, na = "")
+      ldb_react() %>%
+        mutate_at(vars(Texts, `Questions Answered`),
+                  funs(format(., scientific = FALSE))) %>%
+        write_csv(file, na = "")
     }
   )
   organizer_lookup <- reactive({
@@ -157,7 +166,10 @@ shinyServer(function(input, output, session) {
       paste("organizers-leaderboard-", as.Date(input$day), ".csv", sep="")
     },
     content = function (file) {
-      write_csv(ldb_organizers_react(), file, na = "")
+      ldb_organizers_react() %>%
+        mutate_at(vars(Texts, `Questions Answered`),
+                  funs(format(., scientific = FALSE))) %>%
+        write_csv(file, na = "")
     }
   )
   output$merged_download <- downloadHandler(
