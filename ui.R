@@ -56,7 +56,7 @@ shinyUI(fluidPage(
         h3("Campaign Progress"),
         conditionalPanel(
           "output.campaign_status",
-          div("TODO: export campaign status to texter tracker",
+          div("In Development: export campaign status to texter tracker",
               class = "btn btn-default", disabled = TRUE)
         ),
         tableOutput("campaign_status")

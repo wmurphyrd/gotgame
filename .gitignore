@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .RProfile
+.secrets
 *.csv
 rsconnect
 .httr-oauth

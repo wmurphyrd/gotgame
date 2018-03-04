@@ -10,10 +10,15 @@ library(magrittr)
 library(tidyverse)
 library(googlesheets)
 library(cellranger)
+library(jsonlite)
 
 gs_tracker_id <- "1rJY91THJIVZ0j6WM0vL0rZsTyCK8hvMg7w8JK2jveK4"
 master_list_name <- "MASTER 2018 Texters"
-nrow_if_present <- function(x) { ifelse(is.null(x), NA, nrow(x)) }
+gs_secrets <- readLines(".secrets") %>% fromJSON()
+# gs_secrets$redirect_uri <- "http://127.0.0.1:7625/"
+nrow_if_present <- function(x, default = NA) {
+  ifelse(is.null(x), default, nrow(x))
+}
 
 shinyServer(function(input, output, session) {
   all_files <- tibble(name = character(0))
@@ -60,10 +65,11 @@ shinyServer(function(input, output, session) {
         type = factor(type, levels = c("contacts", "uncontacteds", "questions"))
       ) %>%
       spread(type, data, drop = FALSE) %>%
-      mutate(contacted_count = sapply(contacts, nrow_if_present),
-             uncontacted_count = sapply(uncontacteds, nrow_if_present),
-             people = contacted_count + uncontacted_count,
-             ptg = contacted_count / people
+      mutate(
+        contacted_count = sapply(contacts, nrow_if_present),
+        uncontacted_count = sapply(uncontacteds, nrow_if_present, default = 0),
+        people = contacted_count + uncontacted_count,
+        ptg = contacted_count / people
       ) %>%
       select(-contacted_count, -uncontacted_count) %>%
       mutate(contacts = !sapply(contacts, is.null),
@@ -201,7 +207,7 @@ shinyServer(function(input, output, session) {
   output$loginButton <- renderUI({
     if (!is.null(isolate(access_token()))) {
       tags$a(
-        icon("plug"),
+        icon("check"),
         "Texter Tracker is Connected",
         disabled = TRUE,
         class = "btn btn-default"
@@ -210,7 +216,8 @@ shinyServer(function(input, output, session) {
       tags$a(
         icon("plug"),
         "Connect to Texter Tracker",
-        href = gs_webapp_auth_url(),
+        href = gs_webapp_auth_url(client_id = gs_secrets$client_id,
+                                  redirect_uri = gs_secrets$redirect_uri),
         class = "btn btn-default"
       )
     }
@@ -222,7 +229,10 @@ shinyServer(function(input, output, session) {
     
     if (length(pars$code) > 0) {
       ## extract the authorization code
-      gs_webapp_get_token(auth_code = pars$code)
+      gs_webapp_get_token(auth_code = pars$code,
+                          client_id = gs_secrets$client_id,
+                          client_secret = gs_secrets$client_secret,
+                          redirect_uri = gs_secrets$redirect_uri)
     } else {
       NULL
     }
