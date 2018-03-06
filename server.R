@@ -15,7 +15,8 @@ library(jsonlite)
 gs_tracker_id <- "1rJY91THJIVZ0j6WM0vL0rZsTyCK8hvMg7w8JK2jveK4"
 master_list_name <- "MASTER 2018 Texters"
 gs_secrets <- readLines(".secrets") %>% fromJSON()
-# gs_secrets$redirect_uri <- "http://127.0.0.1:7625/"
+# debugging
+if (interactive()) { gs_secrets$redirect_uri <- "http://127.0.0.1:7625/" }
 nrow_if_present <- function(x, default = NA) {
   ifelse(is.null(x), default, nrow(x))
 }
@@ -103,19 +104,28 @@ shinyServer(function(input, output, session) {
       ) %>%
       filter(date == as.character(input$day))
   })
-  ldb_react <- reactive({
-    target_day_data() %>% {
-      if (isTruthy(organizer_lookup())) {
-        left_join(., organizer_lookup(),
-                  by = c(Texter = "Name")) %>%
-          mutate(Organizer = ifelse(is.na(Organizer), "Unassigned", Organizer))
-      } else {
-        mutate(., Organizer = "Not-Connected")
-      }
-    } %>%
-      group_by(Organizer, Texter, type) %>%
+  texter_day_totals <- reactive({
+    target_day_data() %>%
+      group_by(Texter, type) %>%
       summarize(total = n()) %>%
       ungroup () %>%
+      {
+        if (isTruthy(organizer_lookup())) {
+          left_join(., organizer_lookup(), by = c(Texter = "Name")) %>%
+            # avoid inflated texting counts if duplicates in texter tracker
+            group_by(Texter, type) %>%
+            filter(row_number(Texter) == 1) %>%
+            ungroup() %>%
+            mutate(
+              Organizer = ifelse(is.na(Organizer), "Unassigned", Organizer)
+            )
+        } else {
+          mutate(., Organizer = "Not-Connected")
+        }
+      }
+  })
+  ldb_react <- reactive({
+    texter_day_totals() %>%
       select(Organizer, Texter, type, Total = total) %>%
       mutate(type = factor(type, levels = c("contacts", "questions"))) %>%
       spread(type, Total, drop = FALSE, fill = 0) %>%
@@ -148,12 +158,9 @@ shinyServer(function(input, output, session) {
     }
   })
   ldb_organizers_react <- reactive({
-    req(organizer_lookup()) %>%
-      select(Name, Organizer) %>%
-      left_join(target_day_data(), ., by = c(Texter = "Name")) %>%
-      mutate(Organizer = ifelse(is.na(Organizer), "Unassigned", Organizer)) %>%
+    texter_day_totals() %>%
       group_by(Organizer, type) %>%
-      summarize(total = n()) %>%
+      summarize(total = sum(total)) %>%
       ungroup () %>%
       select(Organizer, type, Total = total) %>%
       mutate(type = factor(type, levels = c("contacts", "questions"))) %>%
